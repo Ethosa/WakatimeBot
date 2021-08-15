@@ -80,14 +80,14 @@ class WakaTimeBot(Vk):
         # Shows top languages.
         elif msg.startswith("langtop"):
             response = wakatime.get_leaderboard()
-            languages = dict(Wakatime.LANGUAGES)
+            languages = {}
 
             if "data" in response:
                 for user in response["data"]:
                     for lang in user["running_total"]["languages"]:
                         try:
                             languages[lang['name']] += lang['total_seconds']
-                        except:
+                        except KeyError:
                             languages[lang['name']] = lang['total_seconds']
                 languages = [
                     (k, v) for k, v in sorted(languages.items(), key=lambda item: item[1], reverse=True)

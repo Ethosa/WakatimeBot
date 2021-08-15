@@ -7,7 +7,6 @@ import regex
 class Wakatime:
 
     URL = "https://wakatime.com/api/v1/"
-    LANGUAGES = {}
     TIME_TABLE = {
         "7": "last_7_days",
         "30": "last_30_days",
@@ -19,8 +18,6 @@ class Wakatime:
         self.app_id = app_id
         self.app_secret = app_secret
         self.session = requests.Session()
-        with open("../languages_list.txt", "r") as f:
-            Wakatime.LANGUAGES = {lang: 0 for lang in regex.findall(r"\S+", f.read())}
 
     def get_method(self, apimethod):
         return self.session.get(Wakatime.URL + apimethod)
