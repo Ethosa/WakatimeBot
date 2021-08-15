@@ -3,13 +3,14 @@
 import configparser
 from collections import OrderedDict
 from random import randint
+from os import remove
 import regex
-from saya import Vk
+from saya import Vk, Uploader
 from wakatime.wakatime import Wakatime
 
 # Read and parse config file.
 # [VK]
-# GROUP_ID, GROUP_TOKEN
+# USER_TOKEN, GROUP_ID, GROUP_TOKEN
 #
 # [WAKATIME]
 # APP_ID, APP_SECRET
@@ -33,8 +34,17 @@ class WakaTimeBot(Vk):
         """
         result = f"💯Топ-{maxv} используемых языков за последние 7 дней на Wakatime:\n"
         for i in range(1, maxv+1):
-            result += f"{i}. {languages[i][0]} - {round(languages[i][1] / 60 / 60, 2)} часов.\n"
+            result += f"{i}. {languages[i-1][0]} - {round(languages[i-1][1] / 60 / 60, 2)} часов.\n"
         return result[:-1]
+
+    def create_diagram(self, languages):
+        # Create pie diagram.
+        name = f"{randint(0,100)}_{randint(0,100)}_{randint(0,100)}.png"
+        wakatime.image_from_languages(name, languages)
+        photo_response = self.upload_photo(name)
+        remove(name)
+        # Formatting
+        return f"photo{photo_response['response'][0]['owner_id']}_{photo_response['response'][0]['id']}"
 
     def message_new(self, event):
         """
@@ -56,7 +66,13 @@ class WakaTimeBot(Vk):
             response = wakatime.get_user_stats(user, days)  # get stats in json
             # Check error
             if "data" in response:
-                self.send_msg(self.build_languages(user, days, response), peer_id)
+                languages = {lang["name"]: lang["total_seconds"] for lang in response["data"]["languages"]}
+                languages = [
+                    (k, v) for k, v in sorted(languages.items(), key=lambda item: item[1], reverse=True)
+                ]
+                photo = self.create_diagram(languages)
+
+                self.send_msg(self.build_languages(user, days, response), peer_id, attachment=photo)
             else:
                 self.send_error(peer_id)
 
@@ -67,18 +83,18 @@ class WakaTimeBot(Vk):
             languages = dict(Wakatime.LANGUAGES)
 
             if "data" in response:
-                print(response["data"])
                 for user in response["data"]:
                     for lang in user["running_total"]["languages"]:
                         try:
                             languages[lang['name']] += lang['total_seconds']
                         except:
                             languages[lang['name']] = lang['total_seconds']
-                            print(lang['name'])
                 languages = [
                     (k, v) for k, v in sorted(languages.items(), key=lambda item: item[1], reverse=True)
                 ]
-                self.send_msg(self.build_top(languages), peer_id)
+                photo = self.create_diagram(languages)
+                
+                self.send_msg(self.build_top(languages), peer_id, attachment=photo)
 
     def parse_args(self, words):
         """
@@ -93,11 +109,27 @@ class WakaTimeBot(Vk):
     def send_error(self, peer_id):
         self.messages.send(message="❌ Упс! Кажется, произошла какая-то ошибка ...", random_id=randint(0, 100000), peer_id=peer_id)
 
-    def send_msg(self, msg, peer_id):
-        self.messages.send(message=msg, random_id=randint(0, 100000), peer_id=peer_id)
+    def send_msg(self, msg, peer_id, attachment=""):
+        return self.messages.send(message=msg, random_id=randint(0, 100000), peer_id=peer_id, attachment=attachment)
+
+    def upload_photo(self, file):
+        """
+        Uploads photo in message.
+        """
+        response = self.call_method("photos.getMessagesUploadServer", {"group_id": config["VK"]["GROUP_ID"]})
+        with open(file, "rb") as f:
+            response = self.session.post(response["response"]["upload_url"], files={'file': f}).json()
+
+        data = {
+            "server": response["server"],
+            "hash": response["hash"],
+            "photo": response["photo"]
+        }
+
+        return self.call_method("photos.saveMessagesPhoto", data)
 
 
 if __name__ == '__main__':
     wakatime = Wakatime(config["WAKATIME"]["APP_ID"], config["WAKATIME"]["APP_SECRET"])
-    bot = WakaTimeBot(token=config["VK"]["GROUP_TOKEN"], group_id=config["VK"]["GROUP_ID"], debug=True)
+    bot = WakaTimeBot(token=config["VK"]["GROUP_TOKEN"], group_id=config["VK"]["GROUP_ID"], debug=True, api="5.131")
     bot.start_listen()

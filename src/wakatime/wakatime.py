@@ -1,5 +1,6 @@
 import requests
-from pprint import pprint
+from random import randint
+from PIL import Image, ImageDraw
 
 
 class Wakatime:
@@ -42,7 +43,9 @@ class Wakatime:
         'Emacs Lisp': 0, 'Org': 0, 'BNF': 0,
         'MDX': 0, 'Cocoa': 0, 'Velocity': 0,
         'Objective-J': 0, 'CoffeeScript': 0, 'PowerShell': 0,
-        'Lua': 0, 'VBScript': 0, 'Liquid': 0
+        'Lua': 0, 'VBScript': 0, 'Liquid': 0,
+        'GAP': 0, 'Clojure': 0, 'reStructuredText': 0, 'Fennel': 0,
+        'CSHTML': 0
     }
 
     def __init__(self, app_id, app_secret):
@@ -61,6 +64,35 @@ class Wakatime:
             user = f"@{user}"
 
         return self.get_method(f"users/{user}/stats/{Wakatime.TIME_TABLE[time]}").json()
+
+    def image_from_languages(self, imgname, languages, maxv=10):
+        """
+        languages is list of tuples:
+        [('Java', 10), ('Rust', 7), ...]
+        """
+        if maxv > len(languages):
+            maxv = len(languages)
+        img = Image.new("RGBA", (720, 360), (33, 33, 33))
+        draw = ImageDraw.Draw(img)
+
+        maxvalue = 0
+        for i in range(1, maxv+1):
+            maxvalue += languages[i-1][1]
+
+        current = 0
+        for i in range(1, maxv+1):
+            color = (randint(66, 222), randint(66, 222), randint(66, 222))
+            percent = 360*(languages[i-1][1]/maxvalue + current)
+
+            draw.pieslice((16, 0, 376, 360), 360*current, percent, color)
+
+            draw.rectangle((390, 6 + i * 18, 390+16, 6 + i * 18 + 16), color)
+            draw.text((390+20, 6 + i * 18), f" - {languages[i-1][0]}", (200, 200, 200))
+
+            current += languages[i-1][1]/maxvalue
+        del draw
+
+        img.save(imgname)
 
     def post_method(self, apimethod):
         return self.session.post(Wakatime.URL + apimethod)
