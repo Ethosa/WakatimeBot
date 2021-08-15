@@ -3,7 +3,7 @@
     wakatime bot for VK
 </div>
 <div align="center">
-    [![wakatime](https://wakatime.com/badge/github/Ethosa/WakatimeBot.svg)](https://wakatime.com/badge/github/Ethosa/WakatimeBot)
+    <a href="https://wakatime.com/badge/github/Ethosa/WakatimeBot"><img src="https://wakatime.com/badge/github/Ethosa/WakatimeBot.svg"></a>
 </div>
 
 ## Usage
