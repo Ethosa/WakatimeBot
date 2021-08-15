@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # author: Ethosa
 import configparser
+from collections import OrderedDict
 from random import randint
 import regex
 from saya import Vk
@@ -26,6 +27,15 @@ class WakaTimeBot(Vk):
         return result + "\n".join(f"{lang['name']}: {lang['text']} ({lang['percent']}%)"
                                   for lang in response["data"]["languages"])
 
+    def build_top(self, languages, maxv=10):
+        """
+        Build languages top.
+        """
+        result = f"💯Топ-{maxv} используемых языков за последние 7 дней на Wakatime:\n"
+        for i in range(1, maxv+1):
+            result += f"{i}. {languages[i][0]} - {round(languages[i][1] / 60 / 60, 2)} часов.\n"
+        return result[:-1]
+
     def message_new(self, event):
         """
         Calls when get new message.
@@ -49,6 +59,26 @@ class WakaTimeBot(Vk):
                 self.send_msg(self.build_languages(user, days, response), peer_id)
             else:
                 self.send_error(peer_id)
+
+        # langtop
+        # Shows top languages.
+        elif msg.startswith("langtop"):
+            response = wakatime.get_leaderboard()
+            languages = dict(Wakatime.LANGUAGES)
+
+            if "data" in response:
+                print(response["data"])
+                for user in response["data"]:
+                    for lang in user["running_total"]["languages"]:
+                        try:
+                            languages[lang['name']] += lang['total_seconds']
+                        except:
+                            languages[lang['name']] = lang['total_seconds']
+                            print(lang['name'])
+                languages = [
+                    (k, v) for k, v in sorted(languages.items(), key=lambda item: item[1], reverse=True)
+                ]
+                self.send_msg(self.build_top(languages), peer_id)
 
     def parse_args(self, words):
         """
