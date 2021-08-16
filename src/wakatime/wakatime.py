@@ -31,31 +31,31 @@ class Wakatime:
 
         return self.get_method(f"users/{user}/stats/{Wakatime.TIME_TABLE[time]}").json()
 
-    def image_from_languages(self, imgname, languages, maxv=10):
+    def image_from_data(self, imgname, data, maxv=10):
         """
-        languages is list of tuples:
+        data is list of tuples:
         [('Java', 10), ('Rust', 7), ...]
         """
-        if maxv > len(languages):
-            maxv = len(languages)
+        if maxv > len(data):
+            maxv = len(data)
         img = Image.new("RGBA", (550, 360), (33, 33, 33))
         draw = ImageDraw.Draw(img)
 
         maxvalue = 0
         for i in range(1, maxv+1):
-            maxvalue += languages[i-1][1]
+            maxvalue += data[i-1][1]
 
         current = 0
         for i in range(1, maxv+1):
             color = (randint(66, 222), randint(66, 222), randint(66, 222))
-            percent = 360*(languages[i-1][1]/maxvalue + current)
+            percent = 360*(data[i-1][1]/maxvalue + current)
 
             draw.pieslice((16, 0, 376, 360), 360*current, percent, color)
 
             draw.rectangle((390, 6 + i * 18, 390+16, 6 + i * 18 + 16), color)
-            draw.text((390+20, 6 + i * 18), f" - {languages[i-1][0]}", (200, 200, 200))
+            draw.text((390+20, 6 + i * 18), f" - {data[i-1][0]}", (200, 200, 200))
 
-            current += languages[i-1][1]/maxvalue
+            current += data[i-1][1]/maxvalue
         del draw
 
         img.save(imgname)
