@@ -6,6 +6,12 @@
     <a href="https://wakatime.com/badge/github/Ethosa/WakatimeBot"><img src="https://wakatime.com/badge/github/Ethosa/WakatimeBot.svg"></a>
 </div>
 
+## Commands
+- `languages <Username> -7/30/180/365days` - shows user used languages in time range (default is 7 days);
+- `editors <Username> -7/30/180/365days` - shows user used editors in time range (default is 7 days);
+- `os <Username> -7/30/180/365days` - shows user used OS in time range (default is 7 days);
+- `langtop` - shows most used languages at this moment.
+
 ## Usage
 You need have:
 - Group ID (like vk.com/club123123 (`123123` is group ID));
