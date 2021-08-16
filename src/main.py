@@ -28,8 +28,9 @@ class WakaTimeBot(Vk):
         """
         data = "Языки" if data_type == "languages" else "Редакторы" if data_type == "editors" else "Операционные системы"
         result = f"📦 {data}, используемые {user} за последние {days} дней:\n"
-        return result + "\n".join(f"{lang['name']}: {lang['text']} ({lang['percent']}%)"
-                                  for lang in response["data"][data_type])
+        result += "\n".join(f"{lang['name']}: {lang['text']} ({lang['percent']}%)"
+                            for lang in response["data"][data_type])
+        return result + "\nСреднее время кодинга за сутки: " + response["data"]["human_readable_daily_average"]
 
     def build_top(self, data, maxv=10, data_type="languages"):
         """
