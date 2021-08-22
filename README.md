@@ -3,7 +3,12 @@
     wakatime bot for VK
 </div>
 <div align="center">
-    <a href="https://wakatime.com/badge/github/Ethosa/WakatimeBot"><img src="https://wakatime.com/badge/github/Ethosa/WakatimeBot.svg"></a>
+    <a href="https://wakatime.com/badge/github/Ethosa/WakatimeBot">
+        <img src="https://wakatime.com/badge/github/Ethosa/WakatimeBot.svg">
+    </a>
+    <a href="https://www.codefactor.io/repository/github/ethosa/wakatimebot">
+        <img src="https://www.codefactor.io/repository/github/ethosa/wakatimebot/badge" alt="CodeFactor" />
+    </a>
 </div>
 
 ## Commands
