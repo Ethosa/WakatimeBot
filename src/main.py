@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 # author: Ethosa
-import configparser
+import sqlite3
+import regex
+from configparser import ConfigParser
 from collections import OrderedDict
 from random import randint
 from os import remove
-import regex
 from saya import Vk, Uploader
 from wakatime.wakatime import Wakatime
 
-from pprint import pprint
 
 # Read and parse config file.
 # [VK]
@@ -16,18 +16,34 @@ from pprint import pprint
 #
 # [WAKATIME]
 # APP_ID, APP_SECRET
-config = configparser.ConfigParser()
+config = ConfigParser()
 with open("secret.cfg", "r", encoding="utf-8") as f:
     config.read_string(f.read())
 
+# connect to SQLite3
+connect = sqlite3.connect('users.db')
+cursor = connect.cursor()
+cursor.execute('CREATE TABLE IF NOT EXISTS wakatime_users (id int, username text)')
+connect.commit()
+
 
 class WakaTimeBot(Vk):
+    def add_user(self, data, user_id):
+        for user in cursor.execute('SELECT * FROM wakatime_users'):
+            if user[0] == user_id:
+                return -1
+        if user_id > 0 and data:
+            cursor.execute('INSERT INTO wakatime_users VALUES (?, ?)', (user_id, data[0]))
+            connect.commit()
+            return 1
+        return 0
+
     def build_stats(self, user, days, response, data_type="languages"):
         """
         Builds answer to `languages` command.
         """
-        data = "Языки" if data_type == "languages" else "Редакторы" if data_type == "editors" else "Операционные системы"
-        result = f"📦 {data}, используемые {user} за последние {days} дней:\n"
+        data = "📦 Языки" if data_type == "languages" else "📖 Редакторы" if data_type == "editors" else "💻 Операционные системы"
+        result = f"{data}, используемые {user} за последние {days} дней:\n"
         result += "\n".join(f"{lang['name']}: {lang['text']} ({lang['percent']}%)"
                             for lang in response["data"][data_type])
         return result + "\nСреднее время кодинга за сутки: " + response["data"]["human_readable_daily_average"]
@@ -58,19 +74,32 @@ class WakaTimeBot(Vk):
         """
         msg = event["object"]["message"]["text"]
         peer_id = event["object"]["message"]["peer_id"]
+        from_id = event["object"]["message"]["from_id"]
 
         # languages/editors/os Username -7days
         if msg.startswith("languages"):
-            self.send_stats(peer_id, msg)
-        elif msg.startswith("editors "):
-            self.send_stats(peer_id, msg, "editors")
-        elif msg.lower().startswith("os "):
-            self.send_stats(peer_id, msg, "operating_systems")
+            self.send_stats(peer_id, msg, user_id=from_id)
+        elif msg.startswith("editors"):
+            self.send_stats(peer_id, msg, "editors", user_id=from_id)
+        elif msg.lower().startswith("os"):
+            self.send_stats(peer_id, msg, "operating_systems", user_id=from_id)
 
         # langtop
         # Shows top languages.
         elif msg.startswith("langtop"):
             self.send_top(peer_id)
+
+        # reg @Username
+        # Register as @username
+        elif msg.startswith("reg "):
+            username = regex.findall(r'@[\w\d]+', msg)
+            response = self.add_user(username, from_id)
+            if response == 1:
+                self.send_msg(f"✅ Пользователь [id{from_id}|{username[0]}] был успешно добавлен!", peer_id)
+            elif response == -1:
+                self.send_msg("❌ Данный пользователь уже добавлен!", peer_id)
+            else:
+                self.send_error(peer_id)
 
     def parse_args(self, words):
         """
@@ -103,14 +132,24 @@ class WakaTimeBot(Vk):
             
             self.send_msg(self.build_top(data), peer_id, attachment=photo)
 
-    def send_stats(self, peer_id, msg, data_type="languages"):
+    def send_stats(self, peer_id, msg, data_type="languages", user_id=0):
         """
         Builds User stat
         top_type may be "languages", "operating_systems", "editors"
         """
         text = regex.findall(r"\S+", msg)  # Get message words.
-        user = text[1]  # Get username [USERNAME | @USERNAME]
         days = "7"  # Get last 7 days stat
+        user = ""
+        if len(text) < 2:  # Get from SQLite DB
+            for u in cursor.execute('SELECT * FROM wakatime_users'):
+                if u[0] == user_id:
+                    user = u[1]
+        else:
+            user = text[1]  # Get username [USERNAME | @USERNAME]
+
+        if not user:  # Send error if username is empty
+            self.send_msg("❌ Укажите никнейм пользователя на Wakatime или зарегестрируйтесь в боте, используя команду:\n<<reg @Username>>.", peer_id)
+            return
 
         parsed = self.parse_args(text)
         if "days" in parsed:
@@ -130,10 +169,12 @@ class WakaTimeBot(Vk):
             self.send_error(peer_id)
 
     def send_error(self, peer_id):
-        self.messages.send(message="❌ Упс! Кажется, произошла какая-то ошибка ...", random_id=randint(0, 100000), peer_id=peer_id)
+        self.messages.send(message="❌ Упс! Кажется, произошла какая-то ошибка ...",
+                           random_id=randint(0, 100000), peer_id=peer_id)
 
     def send_msg(self, msg, peer_id, attachment=""):
-        return self.messages.send(message=msg, random_id=randint(0, 100000), peer_id=peer_id, attachment=attachment)
+        return self.messages.send(message=msg, random_id=randint(0, 100000),
+                                  peer_id=peer_id, attachment=attachment)
 
     def upload_photo(self, file):
         """

@@ -16,6 +16,7 @@
 - `editors <Username> -7/30/180/365days` - shows user used editors in time range (default is 7 days);
 - `os <Username> -7/30/180/365days` - shows user used OS in time range (default is 7 days);
 - `langtop` - shows most used languages at this moment.
+- `reg <Username>` - register in bot base for use `language`, `editors` and `os` commands without args.
 
 ## Usage
 You need have:

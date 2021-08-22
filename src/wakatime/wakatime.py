@@ -19,6 +19,12 @@ class Wakatime:
         self.app_secret = app_secret
         self.session = requests.Session()
 
+    def _load_maxvalue(self, data, maxv):
+        maxvalue = 0
+        for i in range(1, maxv+1):
+            maxvalue += data[i-1][1]
+        return maxvalue
+
     def get_method(self, apimethod):
         return self.session.get(Wakatime.URL + apimethod)
 
@@ -41,11 +47,8 @@ class Wakatime:
         img = Image.new("RGBA", (550, 360), (33, 33, 33))
         draw = ImageDraw.Draw(img)
 
-        maxvalue = 0
-        for i in range(1, maxv+1):
-            maxvalue += data[i-1][1]
-
         current = 0
+        maxvalue = self._load_maxvalue(data, maxv)
         for i in range(1, maxv+1):
             color = (randint(66, 222), randint(66, 222), randint(66, 222))
             percent = 360*(data[i-1][1]/maxvalue + current)
